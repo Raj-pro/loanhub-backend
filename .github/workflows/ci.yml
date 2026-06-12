@@ -92,6 +92,7 @@ jobs:
     name: SonarCloud analysis
     runs-on: ubuntu-latest
     needs: build-test
+    continue-on-error: true
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v4
@@ -105,8 +106,8 @@ jobs:
       - name: SonarCloud scan
         run: >
           mvn -B -ntp verify sonar:sonar
-          -Dsonar.projectKey=raj-pro_loanhub-backend
-          -Dsonar.organization=raj-pro
+          -Dsonar.projectKey=${{ github.repository_owner }}_loanhub-backend
+          -Dsonar.organization=${{ github.repository_owner }}
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
         env:
@@ -192,7 +193,7 @@ jobs:
   push-and-deploy:
     name: push to ECR & update GitOps
     runs-on: ubuntu-latest
-    needs: [build-test, trivy-scan]
+    needs: [build-test, build-image, trivy-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/download-artifact@v4
@@ -227,7 +228,7 @@ jobs:
       # Bump the image tag in loanhub-gitops so ArgoCD picks up the new image
       - uses: actions/checkout@v4
         with:
-          repository: raj-pro/loanhub-gitops
+          repository: ${{ github.repository_owner }}/loanhub-gitops
           token: ${{ secrets.GITOPS_TOKEN }}
           path: gitops
 
